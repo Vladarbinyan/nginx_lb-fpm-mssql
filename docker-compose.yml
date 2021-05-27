@@ -1,0 +1,80 @@
+version: '3'
+networks: 
+    backend:
+        driver: bridge
+    frontend:
+        driver: bridge
+volumes:
+    dbdata:
+        driver: local
+    files:
+        driver: local
+
+
+services:
+    miftest-b1:
+        build: 
+            context: ./nginx/.
+        container_name: miftest-b1
+        volumes:
+            - ./nginx/conf:/etc/nginx/conf.d/:ro
+            - ./www:/var/www/htdocs:ro
+            - ./run:/var/run
+        ports:
+            - 80:80
+            - 443:443
+        restart: always
+        depends_on:
+            - miftest-w1
+            - miftest-db1
+        networks: 
+            - frontend
+            - backend
+    miftest-w1:
+        build: 
+            context: ./php/.
+            args: 
+                CONFIG: "miftest-w1"
+        container_name: miftest-w1
+        restart: always
+        volumes:
+            - ./php/conf/php.ini:/usr/local/etc/php/conf.d/php.ini:ro
+            - ./www:/var/www/htdocs:ro
+            - files:/var/www/htdocs/files
+            - ./run:/var/run
+        networks: 
+            - backend
+    miftest-w2:
+        build: 
+            context: ./php/.
+            args: 
+                CONFIG: "miftest-w2"
+        container_name: miftest-w2
+        restart: always
+        volumes:
+            - ./php/conf/php.ini:/usr/local/etc/php/conf.d/php.ini:ro
+            - ./www:/var/www/htdocs:ro
+            - files:/var/www/htdocs/files
+            - ./run:/var/run
+        networks: 
+            - backend
+
+
+    miftest-db1:
+        image: mysql:5.7.22
+        container_name: miftest-db1
+        restart: unless-stopped
+        tty: true
+        ports:
+          - "3306:3306"
+        environment:
+          MYSQL_DATABASE: ${dbname}
+          MYSQL_ROOT_PASSWORD: ${dbpass}
+          SERVICE_NAME: mysql
+        volumes:
+          - dbdata:/var/lib/mysql/
+        #   - ./mysql/my.cnf:/etc/mysql/my.cnf
+        networks: 
+            - backend
+
+
